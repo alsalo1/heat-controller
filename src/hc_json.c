@@ -8,6 +8,8 @@
 
 #include "hc_json.h"
 
+/**************************************************************************************************/
+
 int32_t hc_json_parse_sensor_data(const char* json_string, hc_sensor_sample* sample)
 {
     cJSON* json_obj;
@@ -57,6 +59,23 @@ int32_t hc_json_parse_sensor_data(const char* json_string, hc_sensor_sample* sam
             }
         }
 
+        cJSON_Delete(json_obj);
+    }
+
+    return res;
+}
+
+/**************************************************************************************************/
+
+char* hc_json_create_valve_msg(int32_t valve_level)
+{
+    char* res = NULL;
+    cJSON* json_obj = cJSON_CreateObject();
+
+    if(json_obj != NULL)
+    {
+        cJSON_AddNumberToObject(json_obj, "level", (valve_level / 1000.0));
+        res = cJSON_PrintUnformatted(json_obj);
         cJSON_Delete(json_obj);
     }
 

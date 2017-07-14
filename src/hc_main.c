@@ -16,6 +16,7 @@ typedef struct
     hc_mqtt mqtt;
     arrlist_t samples;
     pthread_mutex_t lock;
+    uint32_t valve_level;
 } hc_main;
 
 /**************************************************************************************************/
@@ -52,6 +53,8 @@ int main(int argc, char** argv)
 {
     int32_t res;
 
+    hc.valve_level = 50000;
+
     res = arrlist_init(&hc.samples, 10, 10, sizeof(hc_sensor_sample));
 
     if(res == 0)
@@ -73,6 +76,14 @@ int main(int argc, char** argv)
         
         while(res == 0)
         {
+            char* valve_msg = hc_json_create_valve_msg(hc.valve_level);
+
+            if(valve_msg != NULL)
+            {
+                res = hc_mqtt_pub_adjust(&hc.mqtt, valve_msg);
+                free(valve_msg);
+            }
+
             sleep(HC_MAIN_ADJUST_LOOP_IN_S);
         }
     }
