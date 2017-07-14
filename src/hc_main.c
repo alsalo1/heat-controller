@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "hc_json.h"
 #include "hc_mqtt.h"
 
 typedef struct
@@ -24,7 +25,17 @@ static const char* hc_main_mqtt_broker_addr = "tcp://localhost:1883";
 
 static void hc_main_msg_handler(void* ctx, const char* msg)
 {
+    hc_sensor_sample sample;
+    int32_t res;
+
     printf("[MQTT]: %s\n", msg);
+
+    res = hc_json_parse_sensor_data(msg, &sample);
+
+    if(res == 0)
+    {
+        printf("[SENSOR SAMPLE]: name %s, temp: %d\n", sample.name, sample.data.temp.temp);
+    }
 }
 
 /**************************************************************************************************/
