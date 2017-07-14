@@ -3,6 +3,8 @@
  **************************************************************************************************/
 
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "hc_mqtt.h"
 
@@ -12,7 +14,11 @@
 
 static const char* hc_mqtt_client_id = "heat-controller";
 
+static const char* hc_mqtt_topic_temp_reading = "/readings/temperature";
+
 static const char* hc_mqtt_topic_all_readings = "/readings/+";
+
+static const char* hc_mqtt_topic_act_room1 = "/actuators/room-1";
 
 /**************************************************************************************************/
 
@@ -30,6 +36,22 @@ static void hc_mqtt_msg_delivered(void* ctx, MQTTClient_deliveryToken token)
 
 static int hc_mqtt_msg_received(void* ctx, char* topic, int topic_len, MQTTClient_message* msg)
 {
+    hc_mqtt* obj = (hc_mqtt*)ctx;
+
+    if(obj->cb != NULL &&
+       strcmp(topic, hc_mqtt_topic_temp_reading) == 0)
+    {
+        char* msg_string = malloc(msg->payloadlen + 1);
+
+        if(msg_string != NULL)
+        {
+            memcpy(msg_string, msg->payload, msg->payloadlen);
+            msg_string[msg->payloadlen] = '\0';
+            obj->cb(obj->cb_ctx, msg_string);
+            free(msg_string);
+        }
+    }
+
     MQTTClient_freeMessage(&msg);
     MQTTClient_free(topic);
     return true;
@@ -37,13 +59,15 @@ static int hc_mqtt_msg_received(void* ctx, char* topic, int topic_len, MQTTClien
 
 /**************************************************************************************************/
 
-int32_t hc_mqtt_init(hc_mqtt* obj)
+int32_t hc_mqtt_init(hc_mqtt* obj, hc_mqtt_msg_cb cb, void* cb_ctx)
 {
     int32_t res = -1;
 
     if(obj != NULL)
     {
         obj->client = NULL;
+        obj->cb = cb;
+        obj->cb_ctx = cb_ctx;
         res = 0;
     }
 
@@ -60,7 +84,11 @@ int32_t hc_mqtt_free(hc_mqtt* obj)
     {
         if(obj->client != NULL)
         {
-            MQTTClient_disconnect(obj->client, HC_MQTT_DISCONNECT_TIMEOUT_MS);
+            if(MQTTClient_isConnected(obj->client))
+            {
+                MQTTClient_disconnect(obj->client, HC_MQTT_DISCONNECT_TIMEOUT_MS);
+            }
+
             MQTTClient_destroy(&obj->client);
             obj->client = NULL;
         }
@@ -134,9 +162,29 @@ int32_t hc_mqtt_disconnect(hc_mqtt* obj)
 {
     int32_t res = -1;
 
-    if(obj != NULL && obj->client != NULL)
+    if(obj != NULL && obj->client != NULL && MQTTClient_isConnected(obj->client))
     {
         res = MQTTClient_disconnect(obj->client, HC_MQTT_DISCONNECT_TIMEOUT_MS);
+    }
+
+    return res;
+}
+
+/**************************************************************************************************/
+
+int32_t hc_mqtt_pub_adjust(hc_mqtt* obj, const char* msg)
+{
+    int32_t res = -1;
+
+    if(obj != NULL && obj->client != NULL && MQTTClient_isConnected(obj->client))
+    {
+        res = MQTTClient_publish(obj->client,
+                                 hc_mqtt_topic_act_room1,
+                                 strlen(msg),
+                                 (void*)msg,
+                                 1,
+                                 0,
+                                 NULL);
     }
 
     return res;
