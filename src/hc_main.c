@@ -5,12 +5,17 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <pthread.h>
+
+#include "arrlist.h"
 #include "hc_json.h"
 #include "hc_mqtt.h"
 
 typedef struct
 {
     hc_mqtt mqtt;
+    arrlist_t samples;
+    pthread_mutex_t lock;
 } hc_main;
 
 /**************************************************************************************************/
@@ -35,6 +40,9 @@ static void hc_main_msg_handler(void* ctx, const char* msg)
     if(res == 0)
     {
         printf("[SENSOR SAMPLE]: name %s, temp: %d\n", sample.name, sample.data.temp.temp);
+        pthread_mutex_lock(&hc.lock);
+        arrlist_insert_last(&hc.samples, &sample);
+        pthread_mutex_unlock(&hc.lock);
     }
 }
 
@@ -44,7 +52,20 @@ int main(int argc, char** argv)
 {
     int32_t res;
 
-    res = hc_mqtt_init(&hc.mqtt, hc_main_msg_handler, &hc);
+    res = arrlist_init(&hc.samples, 10, 10, sizeof(hc_sensor_sample));
+
+    if(res == 0)
+    {
+        pthread_mutexattr_t attr;
+
+        pthread_mutexattr_init(&attr);
+        res = pthread_mutex_init(&hc.lock, &attr);
+    }
+
+    if(res == 0)
+    {
+        res = hc_mqtt_init(&hc.mqtt, hc_main_msg_handler, &hc);
+    }
 
     if(res == 0)
     {
