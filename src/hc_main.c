@@ -27,6 +27,10 @@ static const char* hc_main_mqtt_broker_addr = "tcp://localhost:1883";
 
 #define HC_MAIN_ADJUST_LOOP_IN_S 10
 
+#define HC_MAIN_TARGET_TEMP 22000
+
+#define HC_MAIN_TARGET_DIFF 500
+
 /**************************************************************************************************/
 
 static void hc_main_msg_handler(void* ctx, const char* msg)
@@ -46,6 +50,52 @@ static void hc_main_msg_handler(void* ctx, const char* msg)
         pthread_mutex_unlock(&hc.lock);
     }
 }
+
+/**************************************************************************************************/
+
+static int32_t hc_main_adjust_valve()
+{
+    int32_t res = 0;
+
+    pthread_mutex_lock(&hc.lock);
+
+    if(!arrlist_empty(&hc.samples))
+    {
+        uint16_t i;
+        int32_t temp_total = 0;
+        char* valve_msg;
+
+        for(i = 0; i < arrlist_elems(&hc.samples); ++i)
+        {
+            hc_sensor_sample* sample = (hc_sensor_sample*)arrlist_get_at(&hc.samples, i);
+            temp_total += sample->data.temp.temp;
+        }
+
+        temp_total /= i;
+
+        if(temp_total >= HC_MAIN_TARGET_TEMP + HC_MAIN_TARGET_DIFF)
+        {
+            hc.valve_level = 0;
+        }
+        else if(temp_total <= HC_MAIN_TARGET_TEMP - HC_MAIN_TARGET_DIFF)
+        {
+            hc.valve_level = 100000;
+        }
+
+        valve_msg = hc_json_create_valve_msg(hc.valve_level);
+
+        if(valve_msg != NULL)
+        {
+            res = hc_mqtt_pub_adjust(&hc.mqtt, valve_msg);
+            free(valve_msg);
+        }
+
+        arrlist_clear(&hc.samples);
+    }
+
+    pthread_mutex_unlock(&hc.lock);
+    return res;
+} 
 
 /**************************************************************************************************/
 
@@ -76,14 +126,7 @@ int main(int argc, char** argv)
         
         while(res == 0)
         {
-            char* valve_msg = hc_json_create_valve_msg(hc.valve_level);
-
-            if(valve_msg != NULL)
-            {
-                res = hc_mqtt_pub_adjust(&hc.mqtt, valve_msg);
-                free(valve_msg);
-            }
-
+            res = hc_main_adjust_valve();
             sleep(HC_MAIN_ADJUST_LOOP_IN_S);
         }
     }
