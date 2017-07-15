@@ -44,12 +44,31 @@ static void hc_main_msg_handler(void* ctx, const char* msg)
 
     if(res == 0)
     {
-        printf("[SENSOR SAMPLE]: name %s, temp: %d\n", sample.name, sample.data.temp.temp);
-        /* This is not called from the same thread as main loop -> use mutex */
-        pthread_mutex_lock(&hc.lock);
-        /* For time being, don't care about sensor name, sample type, etc. All go to same array */
-        arrlist_insert_last(&hc.samples, &sample);
-        pthread_mutex_unlock(&hc.lock);
+        switch(sample.type)
+        {
+            case HC_SENSOR_TYPE_TEMP:
+            {
+                printf("[SENSOR SAMPLE]: name %s, temp: %d\n", sample.name, sample.data.temp.temp);
+                /* This is not called from the same thread as main loop -> use mutex */
+                pthread_mutex_lock(&hc.lock);
+                /* For time being, don't care about sensor name, sample type, etc.
+                   All go to same array */
+                arrlist_insert_last(&hc.samples, &sample);
+                pthread_mutex_unlock(&hc.lock);
+            }
+            break;
+
+            case HC_SENSOR_TYPE_MOTION:
+            {
+                printf("[SENSOR SAMPLE]: name %s, motion: %d\n",
+                       sample.name,
+                       sample.data.motion.motion);
+            }
+            break;
+
+            default:
+                break;
+        }
     }
 }
 

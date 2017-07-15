@@ -16,6 +16,8 @@ static const char* hc_mqtt_client_id = "heat-controller";
 
 static const char* hc_mqtt_topic_temp_reading = "/readings/temperature";
 
+static const char* hc_mqtt_topic_motion_reading = "/readings/motion";
+
 static const char* hc_mqtt_topic_all_readings = "/readings/+";
 
 static const char* hc_mqtt_topic_act_room1 = "/actuators/room-1";
@@ -39,7 +41,8 @@ static int hc_mqtt_msg_received(void* ctx, char* topic, int topic_len, MQTTClien
     hc_mqtt* obj = (hc_mqtt*)ctx;
 
     if(obj->cb != NULL &&
-       strcmp(topic, hc_mqtt_topic_temp_reading) == 0)
+       (strcmp(topic, hc_mqtt_topic_temp_reading) == 0 ||
+        strcmp(topic, hc_mqtt_topic_motion_reading) == 0))
     {
         char* msg_string = malloc(msg->payloadlen + 1);
 
