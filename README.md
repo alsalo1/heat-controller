@@ -45,15 +45,17 @@ Connect to MQTT broker
 Subscribe to all sensor readings
 while(no error)
   Collect sensor readings for 10 seconds
-  if(readings received)
+  if(no motion in 60 seconds)
+    Set valve to 0%
+  else
     Calculate average of temperature readings
     if(average > 22.5C)
       Set valve to 0%
     else if(average < 21.5C)
       Set valve to 100%
     endif
-    Clear the readings
   endif
+  Clear the readings
 endwhile
 ```
 ### Additional inputs
