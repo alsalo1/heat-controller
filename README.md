@@ -56,6 +56,15 @@ while(no error)
   endif
 endwhile
 ```
+### Additional inputs
+Motion sensor readings go to topic ```/readings/motion``` in the json format:
+```
+{
+  "sensorID": "sensor-2",
+  "type": "motion",
+  "value": true
+}
+```
 ## TODO
  * Better detection of bad sensor data. Single bad reading can cause problems in current solution.
  * Use PID for valve adjustment instead of the simple on-off control in current implementation.
