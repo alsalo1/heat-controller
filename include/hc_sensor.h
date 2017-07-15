@@ -7,12 +7,12 @@
 
 typedef enum
 {
-    HC_SENSOR_TYPE_TEMP = 0
+    HC_SENSOR_TYPE_TEMP = 0 /**< Temperature sensor */
 } hc_sensor_type;
 
 typedef struct
 {
-    int32_t temp;
+    int32_t temp; /**< Temperature in centigrade * 1000 */
 } hc_sensor_temp_data;
 
 typedef union
