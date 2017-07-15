@@ -1,5 +1,5 @@
 # heat-controller
-Implements https://github.com/WATTx/code-challenges/blob/master/swe-challenge.md
+Implements https://github.com/WATTx/code-challenges/blob/master/swe-challenge.md in C
 
 ## License
 BSD 3-Clause License - See LICENSE for details
@@ -37,3 +37,30 @@ docker build -t heat-controller .
 ```
 docker run --rm --net=host heat-controller:latest "./heat-controller/build/src/heat-controller"
 ```
+
+## Current Implementation
+The current controller in pseudocode:
+```
+Connect to MQTT broker
+Subscribe to all sensor readings
+while(no error)
+  Collect sensor readings for 10 seconds
+  if(readings received)
+    Calculate average of temperature readings
+    if(average > 22.5C)
+      Set valve to 0%
+    else if(average < 21.5C)
+      Set valve to 100%
+    endif
+    Clear the readings
+  endif
+endwhile
+```
+## TODO
+ * Better detection of bad sensor data. Single bad reading can cause problems in current solution.
+ * Use PID for valve adjustment instead of the simple on-off control in current implementation.
+ * Create an actual room model to run and test the controller against (something simple like: https://de.mathworks.com/help/simulink/gs/define-system.html)
+ * Add more sensor types
+ * Support multiple rooms
+ * Improve configurability (do not hardcode all the values)
+ 
